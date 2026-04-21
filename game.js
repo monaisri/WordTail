@@ -2,6 +2,9 @@
 //  ตัวแปรทั้งหมดของเกม
 // =============================================
 
+// โหลดไฟล์เสียง snap.mp3 ไว้ตั้งแต่แรก พร้อมเล่นทันทีที่ต้องการ
+const snapSound = new Audio('snap.mp3');
+
 let TOTAL_TIME = getSelectedTime(); // เวลาตามโหมดที่เลือก (วินาที)
 
 let totalLeft   = TOTAL_TIME; // เวลาที่เหลืออยู่ตอนนี้
@@ -240,6 +243,9 @@ function submitWord() {
   }
 
   // คำถูก → บันทึกและอัปเดต UI
+  // เล่นเสียง snap ทุกครั้งที่ส่งคำสำเร็จ
+  snapSound.currentTime = 0; // รีเซ็ตให้เล่นจากต้นทุกครั้ง (กรณีกดเร็วๆ)
+  snapSound.play();
   usedWords.add(word);
   wordHistory.push(word);
   currentWord    = word;
