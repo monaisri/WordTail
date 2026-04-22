@@ -2,9 +2,6 @@
 //  ตัวแปรทั้งหมดของเกม
 // =============================================
 
-// โหลดไฟล์เสียง snap.mp3 ไว้ตั้งแต่แรก พร้อมเล่นทันทีที่ต้องการ
-const snapSound = new Audio('snap.mp3');
-
 let TOTAL_TIME = getSelectedTime(); // เวลาตามโหมดที่เลือก (วินาที)
 
 let totalLeft   = TOTAL_TIME; // เวลาที่เหลืออยู่ตอนนี้
@@ -36,6 +33,38 @@ let best      = parseInt(localStorage.getItem('WordTail_solo_best') || '0');
 // ใช้สำหรับอธิบายเกมให้อาจารย์ฟัง
 let secretPaused = false;
 
+// =============================================
+//  เสียงทั้งหมดของเกม
+// =============================================
+
+// โหลดไฟล์เสียง snap.mp3 ไว้ตั้งแต่แรก พร้อมเล่นทันทีที่ต้องการ
+const snapSound = new Audio('snap.mp3');
+
+// เสียงนาฬิกา — เล่นวนซ้ำตอนเวลาเหลือน้อย (≤ 8 วินาที)
+const clockSound = new Audio('clock.mp3');
+clockSound.loop = true;
+
+// เสียงจบเกม — เล่นครั้งเดียวตอนเกมจบ
+const gameoverSound = new Audio('gameover.mp3');
+
+// ติดตามสถานะเสียงนาฬิกา เพื่อไม่ให้ play/pause ซ้ำซ้อน
+let clockPlaying = false;
+
+// เริ่มเสียงนาฬิกา (เรียกเมื่อเวลาเหลือ ≤ 8 และยังไม่ได้เล่น)
+function startClockSound() {
+  if (clockPlaying) return;
+  clockSound.currentTime = 0;
+  clockSound.play();
+  clockPlaying = true;
+}
+
+// หยุดเสียงนาฬิกา (เรียกเมื่อส่งคำสำเร็จและเวลากลับมา > 8, หรือเกมจบ)
+function stopClockSound() {
+  if (!clockPlaying) return;
+  clockSound.pause();
+  clockSound.currentTime = 0;
+  clockPlaying = false;
+}
 
 // =============================================
 //  อ่านค่าจาก UI
@@ -89,6 +118,7 @@ function goSetup() {
   slowActive   = false;
   secretPaused = false;
   gameActive   = false;
+  stopClockSound(); // หยุดเสียงนาฬิกาถ้ากำลังเล่นอยู่
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('ready-overlay').classList.remove('show');
   showScreen('screen-setup');
@@ -119,6 +149,7 @@ function resetGame() {
   slowActive     = false;
   slowTickCount  = 0;
   secretPaused   = false;
+  clockPlaying   = false; // reset สถานะเสียงนาฬิกา
   clearTimeout(effectTimeout);
 
   // reset ตัวแปรเกม
@@ -176,6 +207,9 @@ function tick() {
   // ลบเวลา 1 วินาที
   totalLeft--;
   renderTimer();
+
+  // เวลาเหลือ ≤ 8 วิ → เริ่มเสียงนาฬิกาเตือน
+  if (totalLeft <= 8) startClockSound();
 
   // เวลาหมด → จบเกม
   if (totalLeft <= 0) {
@@ -270,6 +304,9 @@ function submitWord() {
   totalLeft = Math.min(totalLeft + 5, TOTAL_TIME);
   renderTimer();
 
+  // ถ้าเวลากลับมามากกว่า 8 วิ → หยุดเสียงนาฬิกา
+  if (totalLeft > 8) stopClockSound();
+
   // ล้าง input และรอคำต่อไป
   document.getElementById('word-input').value = '';
   setStatus('+1', 'ok');
@@ -286,6 +323,11 @@ function endGame() {
   clearInterval(timerID);
   document.getElementById('word-input').disabled  = true;
   document.getElementById('btn-submit').disabled  = true;
+
+  // หยุดเสียงนาฬิกา แล้วเล่นเสียงจบเกม
+  stopClockSound();
+  gameoverSound.currentTime = 0;
+  gameoverSound.play();
 
   // เตรียมข้อมูลแสดงผล
   const playerName = document.getElementById('input-name').value.trim() || 'คุณ';
